@@ -1,5 +1,4 @@
-name: Enterprise Core CI/CD Pipeline
-
+name: Enterprise Core CI/CD Pipeline v2
 # 1. The Trigger: When does this robot wake up?
 on:
   push:

@@ -1,0 +1,32 @@
+name: Enterprise Core CI/CD Pipeline
+
+# 1. The Trigger: When does this robot wake up?
+on:
+  push:
+    branches: [ "main" ] # Runs every time you push to the main branch
+
+# 2. The Conveyor Belt: What does it do?
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest # Borrows a free Linux server from Microsoft
+
+    steps:
+    # Step A: Download your code onto the server
+    - name: Checkout Source Code
+      uses: actions/checkout@v3
+      
+    # Step B: Install the exact version of Java we need
+    - name: Set up Java Engine
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+        
+    # Step C: Run the Maven compiler (and bypass the tests we skipped earlier)
+    - name: Compile and Build Application
+      run: ./mvnw clean package -DskipTests
+      
+    # Step D: Prove the Dockerfile works by building the image
+    - name: Build Docker Container
+      run: docker build -t fintech-core-engine:latest .

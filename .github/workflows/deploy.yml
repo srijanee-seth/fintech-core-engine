@@ -21,8 +21,10 @@ jobs:
         
     # We tell the robot to change directory into 'wallet' before compiling
     - name: Compile Application
-      run: ./mvnw clean package -DskipTests
       working-directory: wallet
+      run: |
+        chmod +x mvnw
+        ./mvnw clean package -DskipTests
       
     # We also tell Docker to look inside the 'wallet' folder for the Dockerfile
     - name: Build Docker Container

@@ -2,81 +2,64 @@ import streamlit as st
 import requests
 import pandas as pd
 
-# --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Fintech Observability", layout="wide")
-API_BASE_URL = "http://localhost:8080/api"
-AUTH_CREDENTIALS = ("srijanee", "fintech2026")
+# ==========================================
+# 🛑 CRITICAL STEP: Paste your Render URL here!
+# Example: "https://fintech-core-api-xyz.onrender.com/api/wallets"
+# ==========================================
+API_BASE_URL = "https://fintech-core-engine.onrender.com/api/wallets" 
 
-# --- 2. HEADER ---
-st.title("🤖 Fintech System Automation & Observability Dashboard")
-st.markdown("---")
+st.set_page_config(page_title="Fintech Core Dashboard", layout="wide")
+st.title("🏦 Enterprise Fintech Engine")
 
-st.sidebar.header("📟 Core System Health")
-st.sidebar.success("Gateway: Connected to Port 8080")
-st.sidebar.info("Background Automation: Cron Active (10s)")
+# --- SIDEBAR: COMMAND NODE ---
+st.sidebar.header("⚙️ Command Node")
 
-# --- 3. NETWORK ENGINE ---
-def fetch_history(wallet_id):
+st.sidebar.subheader("1. Create New Wallet")
+new_wallet_balance = st.sidebar.number_input("Initial Balance", min_value=0.0, value=100.0, step=10.0)
+
+if st.sidebar.button("Create Wallet"):
     try:
-        res = requests.get(f"{API_BASE_URL}/wallets/{wallet_id}/history", auth=AUTH_CREDENTIALS)
-        return res.json() if res.status_code == 200 else None
-    except:
-        return None
+        payload = {"balance": new_wallet_balance}
+        response = requests.post(API_BASE_URL, json=payload)
+        if response.status_code in [200, 201]:
+            st.sidebar.success(f"Success! Wallet Created.")
+        else:
+            st.sidebar.error("Failed to create wallet.")
+    except Exception as e:
+        st.sidebar.error(f"API Connection Error: Make sure your URL is correct!")
 
-def execute_deposit(wallet_id, amount):
-    res = requests.put(
-        f"{API_BASE_URL}/wallets/{wallet_id}/deposit", 
-        params={"amount": amount}, 
-        auth=AUTH_CREDENTIALS
-    )
-    return res
+# --- MAIN DASHBOARD AREA ---
+st.write("### Live System Overview")
 
-# --- 4. DATA PROCESSING & METRICS ---
-wallet_target = 1
-data = fetch_history(wallet_target)
-
-if data:
-    df = pd.DataFrame(data)
+try:
+    # Fetch all wallets from the Java API
+    response = requests.get(API_BASE_URL)
     
-    # Calculate live balance securely from the ledger
-    deposits = df[df['type'] == 'DEPOSIT']['amount'].sum()
-    transfers_out = df[df['type'] == 'TRANSFER_OUT']['amount'].sum()
-    live_balance = deposits - transfers_out
-    
-    # Render High-End Metric Cards
-    st.subheader("Live System Metrics (Wallet 1)")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Value Locked (TVL)", f"₹ {live_balance:,.2f}")
-    col2.metric("Ledger Volume", f"{len(df)} Transactions")
-    col3.metric("System Status", "SECURE", delta="Encrypted")
-    st.markdown("---")
-
-    # --- 5. THE CONTROL ROOM (UI LAYOUT) ---
-    left_column, right_column = st.columns([2, 1])
-
-    with left_column:
-        st.subheader("📊 System Ledger: Transaction Stream")
-        display_df = df[["transactionId", "type", "amount", "timestamp", "walletId"]]
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-    with right_column:
-        st.subheader("⚡ Command Node")
-        st.info("Manual Override Controls")
+    if response.status_code == 200:
+        wallets = response.json()
         
-        # The Interactive Deposit Form
-        with st.form("deposit_form"):
-            st.write("Inject Funds (Bypass GUI)")
-            inject_amount = st.number_input("Amount (₹)", min_value=1.0, step=100.0)
-            submit = st.form_submit_button("Execute Authorization")
+        if not wallets:
+            st.info("The vault is currently empty. Use the Command Node on the left to create a wallet!")
+        else:
+            # Calculate Total Value Locked (TVL)
+            tvl = sum(w.get("balance", 0.0) for w in wallets)
             
-            if submit:
-                response = execute_deposit(wallet_target, inject_amount)
-                if response.status_code == 200:
-                    st.success(f"Successfully injected ₹{inject_amount}!")
-                    st.rerun() # Instantly refreshes the dashboard with new data
-                else:
-                    # Catches the firewall error we built earlier!
-                    error_msg = response.json().get('validation_error', 'Transaction Blocked')
-                    st.error(error_msg)
-else:
-    st.warning("Awaiting connection to Spring Boot Core Engine...")
+            # Display metrics
+            col1, col2 = st.columns(2)
+            col1.metric("Total Value Locked (TVL)", f"${tvl:,.2f}")
+            col2.metric("Active Wallets", len(wallets))
+            
+            # Display Data Table
+            st.write("### Active Ledgers")
+            df = pd.DataFrame(wallets)
+            
+            # Format the dataframe nicely
+            if "balance" in df.columns:
+                df["balance"] = df["balance"].apply(lambda x: f"${x:,.2f}")
+            
+            st.dataframe(df, use_container_width=True)
+            
+    else:
+        st.error(f"Could not fetch data. Server returned status code: {response.status_code}")
+except Exception as e:
+    st.error("🚨 Could not connect to the Backend Engine. Did you paste your Render URL at the top of the code?")

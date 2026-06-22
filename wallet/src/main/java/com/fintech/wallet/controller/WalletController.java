@@ -10,17 +10,39 @@ import org.springframework.web.bind.annotation.*;
 import com.fintech.wallet.dto.TransactionReceipt;
 import java.math.BigDecimal;
 import java.util.List;
+import com.fintech.wallet.entity.Wallet;
+import com.fintech.wallet.repository.WalletRepository;
 
 @RestController
 @RequestMapping("/api/wallets")
-@Validated // THIS ACTIVATES THE FIREWALL FOR THE WHOLE CLASS
+@Validated 
 public class WalletController {
 
     private final WalletService walletService;
+    private final WalletRepository walletRepository; // <--- 1. We added the database repository
 
-    public WalletController(WalletService walletService) {
+    // <--- 2. We updated the constructor to include it
+    public WalletController(WalletService walletService, WalletRepository walletRepository) {
         this.walletService = walletService;
+        this.walletRepository = walletRepository;
     }
+
+    // ==========================================
+    // 🚀 THE MISSING ENDPOINTS FOR STREAMLIT!
+    // ==========================================
+
+    // 3. The door for fetching all wallets for the dashboard table
+    @GetMapping
+    public List<Wallet> getAllWallets() {
+        return walletRepository.findAll();
+    }
+
+    // 4. The door for creating a new wallet from the sidebar
+    @PostMapping
+    public Wallet createWallet(@RequestBody Wallet newWallet) {
+        return walletRepository.save(newWallet);
+    }
+
 
     @PutMapping("/{id}/deposit")
     public Wallet depositFunds(

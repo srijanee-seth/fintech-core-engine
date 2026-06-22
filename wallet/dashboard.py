@@ -6,7 +6,7 @@ import pandas as pd
 # 🛑 CRITICAL STEP: Paste your Render URL here!
 # Example: "https://fintech-core-api-xyz.onrender.com/api/wallets"
 # ==========================================
-API_BASE_URL = "https://fintech-core-engine.onrender.com/api/wallets" 
+API_BASE_URL = "https://fintech-core-engine.onrender.com/api/wallet" 
 
 st.set_page_config(page_title="Fintech Core Dashboard", layout="wide")
 st.title("🏦 Enterprise Fintech Engine")
@@ -18,15 +18,20 @@ st.sidebar.subheader("1. Create New Wallet")
 new_wallet_balance = st.sidebar.number_input("Initial Balance", min_value=0.0, value=100.0, step=10.0)
 
 if st.sidebar.button("Create Wallet"):
-    try:
-        payload = {"balance": new_wallet_balance}
-        response = requests.post(API_BASE_URL, json=payload)
-        if response.status_code in [200, 201]:
-            st.sidebar.success(f"Success! Wallet Created.")
-        else:
-            st.sidebar.error("Failed to create wallet.")
-    except Exception as e:
-        st.sidebar.error(f"API Connection Error: Make sure your URL is correct!")
+    # Added a visual spinner so we know if Render is just waking up!
+    with st.spinner("Connecting to Cloud Server... (This may take 50s if the server is asleep)"):
+        try:
+            payload = {"balance": new_wallet_balance}
+            response = requests.post(API_BASE_URL, json=payload)
+            
+            if response.status_code in [200, 201]:
+                st.sidebar.success(f"Success! Wallet Created.")
+                st.rerun() # This instantly refreshes the main dashboard table!
+            else:
+                # If it fails, print the EXACT error the Java server sent back
+                st.sidebar.error(f"Failed! Status: {response.status_code}. Reason: {response.text}")
+        except Exception as e:
+            st.sidebar.error(f"Connection Error: {str(e)}")
 
 # --- MAIN DASHBOARD AREA ---
 st.write("### Live System Overview")
